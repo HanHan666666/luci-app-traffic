@@ -11,6 +11,7 @@ A modern, dependency-light LuCI plugin that shows daily / monthly bandwidth usag
 - Usage cards: **Today / This month / Yesterday / Last month** (RX / TX / total)
 - **30-day** daily usage bar chart (pure SVG, hover tooltips, no external JS/CDN)
 - **Today's 24-hour** distribution chart
+- **All-month history** usage list — every recorded month, one number each (RX+TX total)
 - **Live bandwidth rate** (1-second sampling via `/proc/net/dev`)
 - Interface selector (defaults to WAN `eth0`, switchable to any interface)
 - Follows the active LuCI theme (light/dark via CSS variables)

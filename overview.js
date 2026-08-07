@@ -34,7 +34,11 @@ var cssText = [
 	'.traffic-bar-today{opacity:1}',
 	'.traffic-live{font-size:18px;font-weight:700}',
 	'.traffic-empty{opacity:.6;padding:12px 0}',
-	'.traffic-note{font-size:12px;opacity:.55;margin-top:10px;text-align:center}'
+	'.traffic-note{font-size:12px;opacity:.55;margin-top:10px;text-align:center}',
+	'.traffic-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--main-border-color,#e5e5e5)}',
+	'.traffic-month-row:last-child{border-bottom:none}',
+	'.traffic-month-name{font-size:13px;opacity:.8}',
+	'.traffic-month-total{font-size:15px;font-weight:600}'
 ].join('\n');
 
 /* ---------- 工具函数 ---------- */
@@ -215,6 +219,31 @@ function renderHours(hours) {
 	return wrap;
 }
 
+/* ---------- 历史月份用量列表 ---------- */
+
+function renderMonths(months) {
+	var wrap = E('div', { 'class': 'traffic-months' });
+	if (!months || !months.length) {
+		wrap.appendChild(E('div', { 'class': 'traffic-empty' }, '暂无月份数据'));
+		return wrap;
+	}
+
+	/* 倒序: 最新月份在前 */
+	var items = months.slice().reverse();
+
+	items.forEach(function(m) {
+		var total = (m.rx || 0) + (m.tx || 0);
+		var row = E('div', { 'class': 'traffic-month-row' }, [
+			E('span', { 'class': 'traffic-month-name' },
+				m.date.year + ' 年 ' + m.date.month + ' 月'),
+			E('span', { 'class': 'traffic-month-total' }, fmtBytes(total))
+		]);
+		wrap.appendChild(row);
+	});
+
+	return wrap;
+}
+
 /* ---------- 主视图 ---------- */
 
 return L.view.extend({
@@ -273,13 +302,19 @@ return L.view.extend({
 				E('div', { 'class': 'traffic-chart-wrap', 'id': 'traffic-hours' })
 			]);
 
+			/* 历史月份用量容器 */
+			var monthsWrap = E('div', { 'class': 'traffic-panel' }, [
+				E('div', { 'class': 'traffic-panel-title' }, '历史月份用量'),
+				E('div', { 'class': 'traffic-chart-wrap', 'id': 'traffic-months' })
+			]);
+
 			/* 实时速率 */
 			var live = E('div', { 'class': 'traffic-panel' }, [
 				E('div', { 'class': 'traffic-panel-title' }, '实时速率'),
 				E('div', { 'class': 'traffic-live', 'id': 'traffic-live' }, '计算中…')
 			]);
 
-			var view = E('div', { 'class': 'traffic-page' }, [ header, cards, chartWrap, hourWrap, live ]);
+			var view = E('div', { 'class': 'traffic-page' }, [ header, cards, chartWrap, hourWrap, monthsWrap, live ]);
 
 			/* 注入样式 */
 			var style = document.createElement('style');
@@ -320,6 +355,10 @@ return L.view.extend({
 				var hourBox = hourWrap.querySelector('#traffic-hours');
 				hourBox.innerHTML = '';
 				hourBox.appendChild(renderHours(t.hours || []));
+
+				var monthsBox = monthsWrap.querySelector('#traffic-months');
+				monthsBox.innerHTML = '';
+				monthsBox.appendChild(renderMonths(t.months || []));
 			}
 
 			ifaceSel.addEventListener('change', function() {
