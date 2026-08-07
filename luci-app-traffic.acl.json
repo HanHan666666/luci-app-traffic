@@ -1,0 +1,11 @@
+{
+	"luci-app-traffic": {
+		"description": "Grant access to luci-app-traffic statistics",
+		"read": {
+			"ubus": {
+				"luci.traffic": [ "getTraffic", "getCounters" ]
+			}
+		},
+		"write": {}
+	}
+}

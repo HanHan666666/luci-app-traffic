@@ -1,0 +1,91 @@
+#!/usr/bin/ucode
+
+'use strict';
+
+import { popen, open } from 'fs';
+
+/* luci-app-traffic 后端: 只读 vnstat 数据库与 /proc/net/dev */
+
+function readVnstatJson() {
+	let proc = popen('vnstat --json');
+	if (!proc)
+		return { error: 'vnstat 不可用' };
+
+	let text = proc.read('all');
+	proc.close();
+
+	/* vnstat --json 输出直接以 { 开头 (实测无警告前缀), 直接解析 */
+	let data = json(text);
+	if (!data)
+		return { error: 'vnstat JSON 解析失败' };
+
+	/* vnstat 1.x 的 --json 单位是 KiB, 统一转成字节 */
+	if (data.interfaces) {
+		for (let i = 0; i < length(data.interfaces); i++) {
+			let t = data.interfaces[i].traffic;
+			if (!t)
+				continue;
+
+			if (t.total) {
+				t.total.rx = t.total.rx * 1024;
+				t.total.tx = t.total.tx * 1024;
+			}
+
+			let conv = function(arr) {
+				for (let j = 0; j < length(arr); j++) {
+					arr[j].rx = arr[j].rx * 1024;
+					arr[j].tx = arr[j].tx * 1024;
+				}
+			};
+
+			if (t.days)
+				conv(t.days);
+			if (t.months)
+				conv(t.months);
+			if (t.hours)
+				conv(t.hours);
+		}
+	}
+
+	return data;
+}
+
+function readCounters() {
+	let f = open('/proc/net/dev', 'r');
+	if (!f)
+		return null;
+
+	let counters = {};
+	let line;
+	while ((line = f.read('line')) !== null) {
+		let m = match(line, /^\s*([a-z0-9_.-]+):\s*(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)/);
+		if (m)
+			counters[m[1]] = { rx: +m[2], tx: +m[3] };
+	}
+
+	f.close();
+	return counters;
+}
+
+const methods = {
+	getTraffic: {
+		call: function(request) {
+			try {
+				return readVnstatJson();
+			} catch (e) {
+				return { error: 'EX: ' + e };
+			}
+		}
+	},
+
+	getCounters: {
+		call: function(request) {
+			let c = readCounters();
+			if (!c)
+				return { error: '无法读取 /proc/net/dev' };
+			return c;
+		}
+	}
+};
+
+return { "luci.traffic": methods };
