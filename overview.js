@@ -38,9 +38,7 @@ var cssText = [
 	'.traffic-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--main-border-color,#e5e5e5)}',
 	'.traffic-month-row:last-child{border-bottom:none}',
 	'.traffic-month-name{font-size:13px;opacity:.8}',
-	'.traffic-month-rxtx{display:flex;gap:14px;font-size:14px;font-weight:600}',
-	'.traffic-month-rx{color:var(--accent-color,#0099ff)}',
-	'.traffic-month-tx{color:var(--danger-color,#e05252)}'
+	'.traffic-month-rxtx{display:flex;gap:14px;font-size:14px;font-weight:600}'
 ].join('\n');
 
 /* ---------- 工具函数 ---------- */
