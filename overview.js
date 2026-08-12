@@ -38,7 +38,9 @@ var cssText = [
 	'.traffic-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--main-border-color,#e5e5e5)}',
 	'.traffic-month-row:last-child{border-bottom:none}',
 	'.traffic-month-name{font-size:13px;opacity:.8}',
-	'.traffic-month-total{font-size:15px;font-weight:600}'
+	'.traffic-month-rxtx{display:flex;gap:14px;font-size:14px;font-weight:600}',
+	'.traffic-month-rx{color:var(--accent-color,#0099ff)}',
+	'.traffic-month-tx{color:var(--danger-color,#e05252)}'
 ].join('\n');
 
 /* ---------- 工具函数 ---------- */
@@ -232,11 +234,13 @@ function renderMonths(months) {
 	var items = months.slice().reverse();
 
 	items.forEach(function(m) {
-		var total = (m.rx || 0) + (m.tx || 0);
 		var row = E('div', { 'class': 'traffic-month-row' }, [
 			E('span', { 'class': 'traffic-month-name' },
 				m.date.year + ' 年 ' + m.date.month + ' 月'),
-			E('span', { 'class': 'traffic-month-total' }, fmtBytes(total))
+			E('span', { 'class': 'traffic-month-rxtx' }, [
+				E('span', { 'class': 'traffic-month-rx' }, '收 ' + fmtBytes(m.rx || 0)),
+				E('span', { 'class': 'traffic-month-tx' }, '发 ' + fmtBytes(m.tx || 0))
+			])
 		]);
 		wrap.appendChild(row);
 	});
