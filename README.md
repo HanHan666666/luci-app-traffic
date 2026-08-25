@@ -6,6 +6,7 @@ A modern, dependency-light LuCI plugin that shows daily / monthly bandwidth usag
 
 ![UI](https://img.shields.io/badge/UI-Chinese-blue) ![LuCI](https://img.shields.io/badge/LuCI-JS%20view-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 <img width="1920" height="1033" alt="image" src="https://github.com/user-attachments/assets/04752e66-fc20-44cb-b18c-37272c115758" />
+<img width="1920" height="1028" alt="image" src="https://github.com/user-attachments/assets/8a63c01e-ec51-4378-999a-0ec882972f05" />
 
 ## Features
 
