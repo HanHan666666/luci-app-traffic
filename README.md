@@ -5,6 +5,7 @@
 A modern, dependency-light LuCI plugin that shows daily / monthly bandwidth usage of your WAN interface(s), a 30-day bar chart, today's hourly distribution, and live bandwidth rate. Data is sourced from `vnstat` (read-only), so it adds no extra storage writes and survives reboots.
 
 ![UI](https://img.shields.io/badge/UI-Chinese-blue) ![LuCI](https://img.shields.io/badge/LuCI-JS%20view-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+<img width="1920" height="1033" alt="image" src="https://github.com/user-attachments/assets/04752e66-fc20-44cb-b18c-37272c115758" />
 
 ## Features
 
