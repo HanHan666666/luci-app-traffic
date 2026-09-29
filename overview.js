@@ -15,27 +15,31 @@ var callGetCounters = rpc.declare({
 });
 
 /* ---------- 样式 (跟随 LuCI 主题变量, 深浅色自适应) ---------- */
+/* 面板配色优先级: 本插件深色变量 (--traffic-*) → 主题变量 (--panel-bg-color 等) → 浅色兜底。
+   部分第三方深色主题未定义 LuCI 面板变量, 会导致白色兜底与深色页面冲突;
+   因此由 isDarkTheme() 检测深色主题并挂 traffic-dark 类, 提供一套深色面板配色。 */
 
 var cssText = [
 	'.traffic-page{padding:4px 0}',
+	'.traffic-page.traffic-dark{--traffic-panel-bg:#1c1e24;--traffic-panel-border:#3a3f47;--traffic-bar-color:#3da8f5}',
 	'.traffic-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px}',
 	'.traffic-header h2{margin:0;font-size:20px}',
 	'.traffic-iface-pick{display:flex;align-items:center;gap:8px;font-size:13px}',
 	'.traffic-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}',
-	'.traffic-card{background:var(--panel-bg-color,#fff);border:1px solid var(--main-border-color,#d8d8d8);border-radius:10px;padding:14px 16px}',
+	'.traffic-card{background:var(--traffic-panel-bg,var(--panel-bg-color,#fff));border:1px solid var(--traffic-panel-border,var(--main-border-color,#d8d8d8));border-radius:10px;padding:14px 16px}',
 	'.traffic-card .traffic-label{font-size:12px;opacity:.65}',
 	'.traffic-card .traffic-value{font-size:26px;font-weight:700;margin-top:6px;line-height:1.2}',
 	'.traffic-card .traffic-sub{font-size:12px;margin-top:6px;opacity:.75}',
 	'.traffic-sep{margin:0 6px;opacity:.5}',
-	'.traffic-panel{background:var(--panel-bg-color,#fff);border:1px solid var(--main-border-color,#d8d8d8);border-radius:10px;padding:16px;margin-bottom:16px}',
+	'.traffic-panel{background:var(--traffic-panel-bg,var(--panel-bg-color,#fff));border:1px solid var(--traffic-panel-border,var(--main-border-color,#d8d8d8));border-radius:10px;padding:16px;margin-bottom:16px}',
 	'.traffic-panel-title{font-size:14px;font-weight:600;margin-bottom:12px}',
-	'.traffic-bar{fill:var(--accent-color,#0099ff);opacity:.45}',
+	'.traffic-bar{fill:var(--traffic-bar-color,var(--accent-color,#0099ff));opacity:.45}',
 	'.traffic-bar:hover{opacity:1}',
 	'.traffic-bar-today{opacity:1}',
 	'.traffic-live{font-size:18px;font-weight:700}',
 	'.traffic-empty{opacity:.6;padding:12px 0}',
 	'.traffic-note{font-size:12px;opacity:.55;margin-top:10px;text-align:center}',
-	'.traffic-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--main-border-color,#e5e5e5)}',
+	'.traffic-month-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--traffic-panel-border,var(--main-border-color,#e5e5e5))}',
 	'.traffic-month-row:last-child{border-bottom:none}',
 	'.traffic-month-name{font-size:13px;opacity:.8}',
 	'.traffic-month-rxtx{display:flex;gap:14px;font-size:14px;font-weight:600}'
@@ -72,6 +76,28 @@ function findIface(data, name) {
 
 function dateKey(y, m, d) {
 	return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d;
+}
+
+/* 检测当前 LuCI 主题是否为深色: 读取 body 背景的感知亮度,
+   背景为透明时退而求其次看文字颜色 (深色主题通常配浅色文字)。 */
+function isDarkTheme() {
+	function lum(color) {
+		var m = String(color || '').match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/);
+		if (!m)
+			return null;
+		if (m[4] !== undefined && parseFloat(m[4]) === 0)
+			return null; /* 透明色不算 */
+		return 0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3];
+	}
+
+	var s = getComputedStyle(document.body);
+	var bg = lum(s.backgroundColor);
+	if (bg !== null)
+		return bg < 96;
+	var fg = lum(s.color);
+	if (fg !== null)
+		return fg > 159;
+	return false;
 }
 
 /* ---------- 卡片 ---------- */
@@ -317,6 +343,8 @@ return L.view.extend({
 			]);
 
 			var view = E('div', { 'class': 'traffic-page' }, [ header, cards, chartWrap, hourWrap, monthsWrap, live ]);
+			if (isDarkTheme())
+				view.classList.add('traffic-dark');
 
 			/* 注入样式 */
 			var style = document.createElement('style');
@@ -339,6 +367,18 @@ return L.view.extend({
 				var t = ifd.traffic;
 				var days = t.days || [];
 				var months = t.months || [];
+
+				/* vnstat 1.x --json 的 days/months 是"新数据在前"的降序 (2.x 为升序),
+				   统一按日期升序排序, 保证数组末尾恒为最新周期。
+				   卡片取值、30 天柱状图、历史月列表共用这两个数组, 在此一并归一。 */
+				days.sort(function(a, b) {
+					return dateKey(a.date.year, a.date.month, a.date.day) <
+						dateKey(b.date.year, b.date.month, b.date.day) ? -1 : 1;
+				});
+				months.sort(function(a, b) {
+					return dateKey(a.date.year, a.date.month, 1) <
+						dateKey(b.date.year, b.date.month, 1) ? -1 : 1;
+				});
 
 				var today = days.length ? days[days.length - 1] : null;
 				var yesterday = days.length > 1 ? days[days.length - 2] : null;
